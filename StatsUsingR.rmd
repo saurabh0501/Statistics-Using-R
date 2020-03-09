@@ -1,0 +1,409 @@
+---
+title: 'IMT 573: Problem Set 6 - Inference and Monte Carlo'
+author: "Saurabh Sharma"
+date: 'Due: Tuesday, November 12, 2019'
+output: pdf_document
+---
+
+
+##### Setup
+
+Load any R packages of interest here.
+
+```{r Setup, message=FALSE, warning = FALSE}
+install.packages('modeest', repos = "http://cran.us.r-project.org")
+
+library(tidyverse)
+library(gridExtra)
+library(dplyr)
+library(data.table)
+```
+
+
+#### Problem 1: Fathers and Sons
+
+We will examine the heights of fathers and sons (\textit{fatherson.csv} from the previous problem set). If we look at sample means, we see that sons are taller than their fathers. But could this difference be due to chance?
+
+
+##### (a) Load the data and examine it. \textit{fheight} are fathers' heights and \textit{sheight} are sons' heights. How many observations are there? Are there missing values?
+
+```{r heightsdata}
+#Reading the height data-set
+heightsdataset <- read.csv("fatherson.csv.bz2", 
+                         stringsAsFactors=FALSE)
+
+
+#Observing the dataset
+glimpse(heightsdataset)
+str(heightsdataset)
+summary(heightsdataset)
+dim(heightsdataset)
+
+#checking blank values
+sum(heightsdataset == "")
+
+
+#creating two columns for father's and son's height
+heights_table <- separate(heightsdataset, fheight.sheight, c("fathers_h", "son_h"), sep = "\\b\\s\\b", remove = TRUE)
+
+#Observing the modified data-set
+str(heights_table)
+
+
+heights_table <- heights_table %>% mutate_if(is.character, as.numeric)
+
+```
+
+Total number of observations are 1078.
+
+There are no missing values as per the summary function. There are 1078 observations.
+
+
+##### (b) What is an appropriate measurement type/scale for these variables? Are the values discrete or continuous?
+
+Human height is a kind of ratio measurement. It is because we can have an option of zero in the height (numerically not practically) and there is a set of specific values between the options. Also, we can depict someone's height as twice as some other person's height, which makes it a ratio measure.
+
+The values are continuous.
+
+
+##### (c) Describe the fathers' and sons' heights. What do the descriptive statistics look like? Are there any unexpected values? In general, who tends to be taller: fathers or sons?
+
+```{r heightssummary}
+summary(heights_table)
+
+fh_sd = summarise(heights_table, fh_sd = sd(heights_table$fathers_h))
+#This give the standard deviation of father's heights
+fh_sd
+
+sh_sd = summarise(heights_table, sh_sd = sd(heights_table$son_h))
+
+
+fh_variance = fh_sd*fh_sd
+#This gives the variance of father's heights
+fh_variance
+```
+Descriptive statistics for father-son data
+
+Mean of father's heights: 171.9
+Mean of son's heights: 174.5
+
+Median of father's heights:172.1
+Median of son's heights:174.3 
+
+Standard deviation of father's heights:6.972346
+Standard deviation of father's heights:7.150713	
+
+No, there are no unexpected values.
+
+Mean and median of sons is more than father's mean and median.
+So, according to the descriptive statistics, we can assume that the sons tend to be taller than the fathers.
+
+##### (d) Create a density plot with both sets of heights overlayed on the same figure. How do these plots look? What do they suggest in terms of fathers' and sons' relative heights?
+
+
+```{r }
+
+
+#.......... fathers and son distributions..........# 
+plot (density(as.numeric(heights_table$fathers_h)),ylim=c(0,0.08) , col="Green",main="Father's height and Son's height Distribution")
+lines (density(as.numeric(heights_table$fathers_h)),ylim=c(0,0.08) , col="Blue" )
+  
+
+  legend("topright", legend=c("Father's height", "Son's Height"),
+         col=c("red", "blue"), lty=1:1)
+  polygon(density(as.numeric(heights_table$fathers_h)),col = adjustcolor("green", alpha=0.9))
+
+
+  polygon(density(as.numeric(heights_table$son_h)),col = adjustcolor("blue", alpha=0.7))
+#...........
+
+
+```
+
+Above is a plot of fathers and sons heights distributions. As we can see that there is an overlap on the two distributions but the sons tend to be higher than the fathers. Also the mean of sons and median is high as well.
+
+##### (e) Let's do a t-test to determine if the differences we observe are statistically significant. Compute the t-statistic yourself (i.e. do NOT use any pre-existing functions that perform the test). We want to perform what is called a two-sample t-test (we are not going to assume the fathers and sons are paired in some way) and we want to test whether there is a difference in the means.
+
+To test: Whether there is a difference in means
+In order to do a T-test, we must make certain hypothesis regarding the data-set.
+NUll Hypothesis: Our null hypothesis is that there is no difference in mean fathers height and mean sons height.(or H0:  u1 – u2 = 0)
+ALternative hypothesis: The mean of sons heights is greater than the means of fathers heights.or: Ha : u1 – u2 > 0
+Assumed alpha value 0.05
+If we are able to reject the null hypothesis, then our assumption will that the sons means are greater than the fathers means would be correct
+
+
+```{r}
+
+#Fathers height _ sons heights_table
+
+summary(heights_table)
+
+#standard deviation of father's heights
+f_sd <- sd(heights_table$fathers_h)
+f_sd
+
+
+#standard deviation of son's heights
+s_sd <- sd(heights_table$son_h)
+s_sd
+
+ #mean_son_h -mean_father_h  <- 174.1 - 171.9
+ u <-174.5 - 171.9
+ u
+ #Mean_squre <-U*U
+ 
+ #caluclating sample sizes
+ #for father n1: 1078
+ #For son  n2: 1078
+ 
+ n1 <-1078
+ n2<-1078
+ #The degree of freedom in this case is n1+n2-2 = 1078+1078-2
+ 
+ #Calculating pooled standard deviation 
+ #sd_pooled <- ((((n1-1)(f_sd^2) + (n2-1)(s_sd^2)))/n1+n2-2)^(1/2)
+ sd_pooled <- (1077*6.972346*6.972346 + 1077*7.150713*7.150713)/2154
+ sd_pooled <- sd_pooled^(1/2)
+ sd_pooled
+ 
+ 
+ #standard error sd_e
+ sd_e <- (7.062093)*(1/1078 + 1/1078)^0.5
+ sd_e
+ 
+ #T_score <- difference of mean-0/Standard error
+ t_score <- (2.6-0)/0.3041859
+ t_score
+ 
+```
+
+
+##### (f) Did you use pooled or unpooled standard errors in your calculations? Why or why not? (Hint: see OpenIntro Stats 7.3.4)
+
+I have used pooled standard errors in my calculations. According the book openIntro stats, whenever we have standard deviations of the population which are almost similar even though means are different, we can use pooled deviations. In our case the variance of the fathers and sons height is almost same, so we can use the pooled standard errors.
+
+##### (g) Using a t-table, what is the likelihood that the t-statistic you calculated occurs just by random chance? (Hint: be sure you have the appropriate degrees of freedom)
+We have found a pooled standard deviation and hence the degrees of freedom is calculated as follows:
+degrees of freedom = df = n_father + n_son -2 = 1078 + 1078 - 2 = 2154
+Degrees of freedom in our case is quite large and the t-statistic is also very large, so we can easily reject our null hypothesis.
+pval <- pt(8.547405 ,2154,lower.tail = FALSE)
+As the p value is quite less than our alpha value of 0.05, we can say that the t-statistic we calculated is not by chance and we can reject the null hypohtesis.
+
+
+##### (h) What do you find when performing the t-test? Are the differences statistically significant? Interpret your results.
+The observations here were paired that is one fathers height and one sons height and so on. So we took the differences and carried out the T-test.Wwe want to test whether the difference in the mean heights was zero or non-zero. We calculated the T-statisitic (8.547405) and the degree of freedom which were large enough to reject our null hypothesis. In our case the population variance was unknown and also n>30 so the T-test was appropriately applied and also the differences are statistically significant as we have seen using the p value which is quite small and T-statisitic which is a large value.
+
+#### Problem 2: A Monte Carlo Approach
+
+Now, let's examine the same data but using a what's called a Monte Carlo approach. In essence, we're going to leverage repeated (re-)sampling of our data (something we'll discuss more in a few weeks when talking about bootstrapping).
+
+##### (a) What is the overall mean and standard deviation for all heights? (i.e. when examining fathers' and sons' heights together)
+
+
+```{r}
+#combining both the heights into a single column
+combined_heights <-  gather(heights_table, "combined_heights","height",1:2)
+```
+
+
+```{r gatherheights}
+
+#finding the mean and other descriptive statistics of the combined heights data
+summary(combined_heights)
+combined_sd <- sd(combined_heights$height)
+mean_c_sd <- mean(combined_heights$height)
+```
+Mean for all heights is  173.1912
+standard deviation for all heights is 7.173111
+
+##### (b) Create two samples of data pulled from random normals. For both of these distributions, let the size of the sample equal that of the fathers' (or sons') heights. Let the mean and standard deviation be those that you calculated in 2-a. Note that you want two samples pulled from the same distribution - one of these we'll call "fathers" and the other we'll call "sons." What scenario are we simulating here with respect to the differences in fathers and sons heights? (Hint: think about a null hypothesis)
+
+
+```{r}
+#creating two random samples using the standard deviation and mean calculated in the above part
+fathers <- rnorm(1078, mean_c_sd, combined_sd)
+sons <- rnorm(1078, mean_c_sd, combined_sd)
+```
+
+In this case we are trying to find the random samples by combining our father and sons heights. From this sample when we create random samples and then calculate the differences of those sample, we are actually calculating difference in means of samples taken from a population. The output distribution of the above tends to come like a normal curve.Here we can think of a null hypohtesis which says that the means of heights of fathers and sons is different which can then be rejected to prove that for a larger population, it wouldnt be different.
+
+##### (c) What is the difference in means between the fathers' and sons' heights based using the simulated data? How does this compare to the difference in means for the dataset we read in?
+
+
+```{r }
+#calculating the difference in the means of the fathers' and sons' heights 
+
+difference <- sons-fathers
+
+mean_difference <- mean(difference)
+
+mean_difference
+
+```
+
+The difference in the means between the fathers' and sons' heights based using the simulated data is 0.03914303 which is quite smaller in comparison to the difference in means for the dataset we read in i.e. 2.6
+
+##### (d) Now, repeat problem 2-b a large number of times (S; with S > 1000). At each iteration, store the difference in means of the fathers' and sons' heights so you ultimately end up with S different values for the difference in means.
+
+```{r }
+
+#creating an empty verctor
+mean_vec <- vector()
+
+#using loop where S=1200
+for (i in 1:1200) {
+  
+fathers <- rnorm(1078, mean_c_sd, combined_sd)
+
+sons <- rnorm(1078, mean_c_sd, combined_sd)
+
+difference <- sons-fathers
+
+mean_difference <- mean(difference)
+
+mean_vec[i] <- mean_difference
+
+}
+
+str(mean_vec)
+
+
+
+
+```
+
+##### (d) What is the mean of the differences? Explain why you see the result that you do.
+
+
+```{r }
+
+mean(mean_vec)
+sd(mean_vec)
+ggplot() + geom_histogram(aes(mean_vec))
+
+```
+The mean of the differences is 0.0108287.
+As we have increased the number of samples, our difference in means tend to decrease further according to central limit theorem and the distribution tends to normalize.
+
+##### (e) What is the standard error of the differences? How do these compare to the values we saw with the non-simulated data when computing the t-statistic?
+
+```{r}
+
+#calculating standard error in case of Monte carlo stimulation
+standard_error_monte <-sd(mean_vec)/sqrt(1200)
+
+
+#non stimulated standard error from the first part of the assignment 
+sd_e
+ 
+```
+
+Standard error in simulation approach is 0.008847574 which is quite smaller in comparison to the non-stimulation standard error that we saw in the first part whichi is  0.3041859.
+
+##### (f) What is the largest difference we encounter (in terms of absolute value)? How does this compare to the difference in means that we saw with the non-simulated data?
+
+
+```{r }
+
+#after stimulation mean
+max(mean_vec)
+
+#initial mean
+ u <-174.5 - 171.9
+ 
+ 
+```
+
+The largest difference we encounter is 0.9225343. In comparison to the difference in the means we saw in the stimulated data, it is almost 1/3rd. We can see that the largest difference has significantly decreased in this case.
+
+##### (g) What is the 5th and 95th percentile of differences?
+
+```{r }
+
+#5th percentile of differences
+percentile_05 <-quantile(mean_vec, c(.05))
+
+#95th percentile of differences
+percentile_95 <-quantile(mean_vec, c(.95))
+
+
+
+```
+
+The 5th percentile is : -0.5054052 
+The 95th percentile is : 0.4936973 
+
+
+##### (h) Now, increase S to increasingly large numbers and note the maximum difference in means that you see for each S. Do you see a maximum difference that is comparable to the actual difference in means that we encountered with the non-simulated data? If so, how often? Is this expected?
+
+```{r }
+#s=10000
+mean_vec <- vector()
+
+#for s=10000
+for (i in 1:10000) {
+  
+fathers <- rnorm(1078, mean_c_sd, combined_sd)
+
+sons <- rnorm(1078, mean_c_sd, combined_sd)
+
+difference <- sons-fathers
+
+mean_difference <- mean(difference)
+
+mean_vec[i] <- mean_difference
+
+}
+
+max(mean_vec) #1.391095
+
+
+#20000
+mean_vec2 <- vector()
+#for s=20000
+for (i in 1:20000) {
+  
+fathers <- rnorm(1078, mean_c_sd, combined_sd)
+
+sons <- rnorm(1078, mean_c_sd, combined_sd)
+
+difference <- sons-fathers
+
+mean_difference <- mean(difference)
+
+mean_vec2[i] <- mean_difference
+
+}
+
+max(mean_vec2) # 1.219674
+
+
+#30000
+mean_vec3 <- vector()
+#for s=1000000
+for (i in 1:30000) {
+  
+fathers <- rnorm(1078, mean_c_sd, combined_sd)
+
+sons <- rnorm(1078, mean_c_sd, combined_sd)
+
+difference <- sons-fathers
+
+mean_difference <- mean(difference)
+
+mean_vec3[i] <- mean_difference
+
+}
+
+max(mean_vec3) #  1.38434
+
+
+
+#initial non stimulated mean
+#initial mean
+ u <-174.5 - 171.9
+ 
+
+
+```
+I have observed that as I have increased S to increasingly large numbers that maximum difference in means started increasing but it is not regular, whether or not it gets very close to the non-stimualted datas difference of mean is still unclear to me.
