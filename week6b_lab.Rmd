@@ -1,0 +1,92 @@
+---
+title: "IMT 573 Lab: Conditional Probability"
+author: "Saurabh Sharma"
+date: "October 30th, 2019"
+output: 
+  tufte_handout:
+    highlight: tango
+---
+
+\marginnote{\textcolor{blue}{Don't forget to list the full names of your collaborators!}}
+
+# Collaborators: 
+
+# \textbf{Instructions:}
+
+Before beginning this assignment, please ensure you have access to R and/or RStudio. 
+
+1. Download the `week5b_lab.Rmd` file from Canvas. Open `week5b_lab.Rmd` in RStudio (or your favorite editor) and supply your solutions to the assignment by editing `week5b_lab.Rmd`. 
+
+2. Replace the "Insert Your Name Here" text in the `author:` field with your own full name.
+
+3. Be sure to include code chucks, figures and written explanations as necessary. Any collaborators must be listed on the top of your assignment. Any figures should be clearly labeled and appropriately referenced within the text. 
+
+4. When you have completed the assignment and have **checked** that your code both runs in the Console and knits correctly when you click `Knit`, rename the R Markdown file to `YourLastName_YourFirstName_lab5b.Rmd`, and knit it into a PDF. Submit the compiled PDF on Canvas.
+
+In this lab, you will need access to the following R packages:
+
+```{r Setup, message=FALSE}
+# Load some helpful libraries
+library(tidyverse)
+library('dplyr')
+
+```
+
+# Problem: If a baseball team scores X runs, what is the probability it will win the game?
+
+#### This is the question we will explore in this lab (ddapted from Decision Science News, 2014). We will use a dataset of baseball game statistics from 2010-2013. 
+
+#### Baseball is a played between two teams who take turns batting and fielding. A run is scored when a player advances around the bases and returns to home plate. More information about the dataset can be found at http://www.retrosheet.org/.
+
+#### Data files can be found on Canvas in the lab folder. Download the files and load them into one `data.frame` in R as shown below. Comment this code to demonstrate you understand how it works. 
+
+\marginnote{\textcolor{blue}{Note: More information about the dataset can be found at http://www.retrosheet.org/}}
+
+```{r setup, message=FALSE}
+colNames <- read.csv("cnames.txt", header=TRUE)
+baseballData <- NULL
+for (year in seq(2010,2013,by=1)){
+  mypath <- paste('GL',year,'.TXT',sep='')
+  # cat(mypath,'\n')
+  baseballData <- rbind(baseballData,read.csv(mypath,
+  col.names=colNames$Name))
+  baseballData <- tbl_df(baseballData)
+}
+
+# baseballData
+```
+
+#### Select the following relevant columns and create a new data frame to store the data you will use for your analysis.
+
+- Date
+- Home
+- Visitor
+- HomeLeague
+- VisitorLeague
+- HomeScore
+- VisitorScore
+
+```{r setup, message=FALSE}
+
+#creating dataframe with the columns mentioned above
+newbaseball_df <- baseballData %>% 
+  select(Date,Home,Visitor,VisitorLeague,HomeScore,VisitorScore)
+
+# baseballData
+```
+
+
+#### Considering only games between two teams in the National League, compute the conditional probability of the team winning given $X$ runs scored, for $X = 0, ... , 10$. Do this separately for Home and Visitor teams.
+
+```{r setup, message=FALSE}
+
+#creating dataframe for win and loss
+Newdf_w <- newbaseball_df %>% mutate( result = ifelse(HomeScore > VisitorScore, "W", "L"))
+
+# baseballData
+```
+
+* Design a visualization that shows your results.
+* Discuss what you find.
+
+#### Repeat the above problem, but now consider the probability of winning given the number of hits.
